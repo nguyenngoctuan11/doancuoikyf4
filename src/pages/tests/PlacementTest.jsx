@@ -68,6 +68,84 @@ const SAMPLE_QUESTIONS = [
     ],
     correct: "B",
   },
+  {
+    id: "q5",
+    type: "text",
+    skill: "Reading",
+    prompt: "Tiêu đề nào phù hợp cho đoạn văn nói về xu hướng làm việc hybrid?",
+    options: [
+      { key: "A", label: "Những thách thức của nông nghiệp hiện đại" },
+      { key: "B", label: "Vì sao mô hình làm việc linh hoạt trở nên phổ biến" },
+      { key: "C", label: "Công nghệ bảo quản thực phẩm" },
+      { key: "D", label: "Kinh nghiệm chụp ảnh du lịch" },
+    ],
+    correct: "B",
+  },
+  {
+    id: "q6",
+    type: "text",
+    skill: "Communication",
+    prompt: "Khách hàng yêu cầu hoàn tiền, bạn nên phản hồi thế nào?",
+    options: [
+      { key: "A", label: "Từ chối ngay lập tức" },
+      { key: "B", label: "Hứa hoàn tiền mà không kiểm tra" },
+      { key: "C", label: "Xác nhận yêu cầu và kiểm tra chính sách trước khi phản hồi" },
+      { key: "D", label: "Chuyển khách sang bộ phận khác ngay lập tức" },
+    ],
+    correct: "C",
+  },
+  {
+    id: "q7",
+    type: "text",
+    skill: "Writing",
+    prompt: "Phần mở đầu chuyên nghiệp nhất cho email gửi khách hàng?",
+    options: [
+      { key: "A", label: "Hey team, gửi file cho tôi ngay." },
+      { key: "B", label: "Xin chào anh/chị, em muốn than phiền về dự án." },
+      { key: "C", label: "Dear Ms. Lan, I hope you are doing well." },
+      { key: "D", label: "Bạn ơi, tài liệu đâu rồi?" },
+    ],
+    correct: "C",
+  },
+  {
+    id: "q8",
+    type: "text",
+    skill: "Pronunciation",
+    prompt: "Từ nào có trọng âm rơi vào âm tiết thứ hai?",
+    options: [
+      { key: "A", label: "Product" },
+      { key: "B", label: "Engage" },
+      { key: "C", label: "Meeting" },
+      { key: "D", label: "Office" },
+    ],
+    correct: "B",
+  },
+  {
+    id: "q9",
+    type: "text",
+    skill: "Culture",
+    prompt: "Khi tham gia cuộc họp online quốc tế, điều nào quan trọng nhất?",
+    options: [
+      { key: "A", label: "Giữ micro mở suốt thời gian" },
+      { key: "B", label: "Bật camera và đến đúng giờ" },
+      { key: "C", label: "Làm việc riêng trong lúc họp" },
+      { key: "D", label: "Nói trước mọi người để thể hiện" },
+    ],
+    correct: "B",
+  },
+  {
+    id: "q10",
+    type: "text",
+    skill: "Critical thinking",
+    prompt: "Khi viết báo cáo kết thúc dự án, điều nào nên có?",
+    options: [
+      { key: "A", label: "Ý kiến cá nhân về đồng nghiệp" },
+      { key: "B", label: "Chi tiết không liên quan tới dự án" },
+      { key: "C", label: "Kết quả chính, bài học rút ra và đề xuất bước tiếp theo" },
+      { key: "D", label: "Những câu chuyện vui trong nhóm" },
+    ],
+    correct: "C",
+  },
 ];
 
 function normalizeLevel(level) {
@@ -92,6 +170,7 @@ export default function PlacementTest() {
   const [courses, setCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [error, setError] = useState("");
+  const [isModalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -144,8 +223,130 @@ export default function PlacementTest() {
     setResult(null);
   };
 
+  const testLayout = (
+    <div className="grid gap-8 lg:grid-cols-[2fr,1fr]">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {SAMPLE_QUESTIONS.map((question, index) => (
+          <div key={question.id} className="rounded-3xl border border-[#f0dfd0] bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-[#c0793d]">Câu {index + 1}</p>
+              <span className="rounded-full bg-[#f7e6d5] px-3 py-1 text-xs text-[#8f5425]">
+                {question.skill}
+              </span>
+            </div>
+            <p className="mt-3 text-lg font-semibold text-[#1f1208]">{question.prompt}</p>
+
+            {question.imageUrl && (
+              <img src={question.imageUrl} alt="question" className="mt-4 w-full rounded-2xl object-cover" />
+            )}
+
+            {question.audioUrl && (
+              <audio controls className="mt-4 w-full">
+                <source src={question.audioUrl} type="audio/mpeg" />
+                Trình duyệt không hỗ trợ audio.
+              </audio>
+            )}
+
+            <div className="mt-4 space-y-3">
+              {question.options.map((opt) => (
+                <label
+                  key={opt.key}
+                  className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 text-sm transition ${
+                    answers[question.id] === opt.key
+                      ? "border-[#c0793d] bg-[#fff0e3] text-[#8a4f20]"
+                      : "border-[#e4d3c4] text-[#4d3724]"
+                  }`}
+                >
+                  <span>
+                    <span className="font-semibold">{opt.key}. </span>
+                    {opt.label}
+                  </span>
+                  <input
+                    type="radio"
+                    name={question.id}
+                    value={opt.key}
+                    checked={answers[question.id] === opt.key}
+                    onChange={(e) =>
+                      setAnswers((prev) => ({
+                        ...prev,
+                        [question.id]: e.target.value,
+                      }))
+                    }
+                    className="h-4 w-4"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        <div className="flex flex-col gap-3 rounded-3xl border border-[#f0dfd0] bg-white p-6 text-sm text-[#5a3a22] shadow-lg">
+          <div className="flex justify-between">
+            <span>Đã trả lời</span>
+            <span>
+              {answeredCount}/{SAMPLE_QUESTIONS.length}
+            </span>
+          </div>
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#c97a44] to-[#a15724] px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:brightness-105"
+          >
+            Nộp bài và xem gợi ý
+          </button>
+        </div>
+      </form>
+
+      <aside className="space-y-4 rounded-3xl border border-[#f0dfd0] bg-white p-6 shadow-xl">
+        <h3 className="text-xl font-bold text-[#2f1609]">Kết quả & Gợi ý</h3>
+        {!result ? (
+          <p className="text-sm text-[#7a5b42]">Hoàn thành bài test để xem đề xuất khóa học.</p>
+        ) : (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-[#e8d4c0] bg-[#fff7ef] p-4">
+              <p className="text-sm text-[#6d4a2d]">Điểm đúng</p>
+              <p className="text-3xl font-extrabold text-[#2f1609]">
+                {result.correct}/{result.total}
+              </p>
+              <p className="text-sm text-[#6d4a2d]">Tỷ lệ: {result.percent}%</p>
+            </div>
+            <div className="rounded-2xl border border-[#d29a65] bg-[#fff2e1] p-4 text-[#9a5c2c]">
+              <p className="text-sm">Trình độ đề xuất</p>
+              <p className="text-2xl font-bold">{result.band.label}</p>
+              <p className="text-sm opacity-80">{result.band.description}</p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[#2f1609]">Khóa học nên thử</p>
+              {loadingCourses ? (
+                <p className="text-xs text-[#7a5b42]">Đang tải khóa học...</p>
+              ) : error ? (
+                <p className="text-xs text-red-500">{error}</p>
+              ) : result.recommended.length === 0 ? (
+                <p className="text-xs text-[#7a5b42]">Chưa có khóa phù hợp, hãy thử lại sau.</p>
+              ) : (
+                <ul className="mt-3 space-y-3 text-sm">
+                  {result.recommended.map((course) => (
+                    <li key={course.id} className="rounded-2xl border border-[#ead7c5] bg-white p-3">
+                      <p className="font-semibold text-[#1f1208]">{course.title}</p>
+                      <p className="text-xs text-[#7a5b42]">Cấp độ: {course.level || "Đang cập nhật"}</p>
+                      <a
+                        href={`/courses/${course.slug || course.id}`}
+                        className="mt-1 inline-flex items-center text-xs font-semibold text-[#c0793d]"
+                      >
+                        Xem khóa học →
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+      </aside>
+    </div>
+  );
+
   return (
-    <div className="bg-slate-950 text-white">
+    <div className="bg-[#fff8f2] text-[#2f1609]">
       <section className="bg-gradient-to-br from-amber-50 via-white to-rose-50 text-slate-900">
         <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-16 lg:flex-row lg:items-center">
           <div className="flex-1 space-y-4">
@@ -206,131 +407,38 @@ export default function PlacementTest() {
           title="Làm bài kiểm tra tổng hợp"
           subtitle="Giảng viên có thể thiết kế hình ảnh, audio và câu hỏi trắc nghiệm cho học viên."
         />
-
-        <div className="mt-10 grid gap-8 lg:grid-cols-[2fr,1fr]">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {SAMPLE_QUESTIONS.map((question, index) => (
-              <div key={question.id} className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-amber-400">Câu {index + 1}</p>
-                  <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
-                    {question.skill}
-                  </span>
-                </div>
-                <p className="mt-3 text-lg font-semibold text-white">{question.prompt}</p>
-
-                {question.imageUrl && (
-                  <img
-                    src={question.imageUrl}
-                    alt="question"
-                    className="mt-4 w-full rounded-2xl object-cover"
-                  />
-                )}
-
-                {question.audioUrl && (
-                  <audio controls className="mt-4 w-full">
-                    <source src={question.audioUrl} type="audio/mpeg" />
-                    Trình duyệt không hỗ trợ audio.
-                  </audio>
-                )}
-
-                <div className="mt-4 space-y-3">
-                  {question.options.map((opt) => (
-                    <label
-                      key={opt.key}
-                      className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 text-sm transition ${
-                        answers[question.id] === opt.key
-                          ? "border-amber-400 bg-amber-50/10 text-amber-100"
-                          : "border-slate-700 text-slate-300"
-                      }`}
-                    >
-                      <span>
-                        <span className="font-semibold">{opt.key}. </span>
-                        {opt.label}
-                      </span>
-                      <input
-                        type="radio"
-                        name={question.id}
-                        value={opt.key}
-                        checked={answers[question.id] === opt.key}
-                        onChange={(e) =>
-                          setAnswers((prev) => ({
-                            ...prev,
-                            [question.id]: e.target.value,
-                          }))
-                        }
-                        className="h-4 w-4"
-                      />
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
-
-            <div className="flex flex-col gap-3 rounded-3xl border border-slate-800 bg-slate-900 p-6 text-sm text-slate-300">
-              <div className="flex justify-between">
-                <span>Đã trả lời</span>
-                <span>
-                  {answeredCount}/{SAMPLE_QUESTIONS.length}
-                </span>
-              </div>
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-full bg-amber-500 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-amber-600"
-              >
-                Nộp bài và xem gợi ý
+        <div className="mt-6 flex flex-col gap-3">
+          <p className="text-sm text-slate-600">Bài test sẽ mở trong một cửa sổ riêng để bạn tập trung hơn.</p>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="inline-flex items-center rounded-full bg-gradient-to-r from-[#c97a44] to-[#a15724] px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-105"
+            >
+              Mở modal làm bài test
+            </button>
+            {result && (
+              <button type="button" onClick={resetTest} className="text-sm font-semibold text-amber-700">
+                Làm lại bài test
               </button>
-            </div>
-          </form>
-
-          <aside className="space-y-4 rounded-3xl border border-slate-800 bg-slate-950 p-6">
-            <h3 className="text-xl font-bold text-white">Kết quả & Gợi ý</h3>
-            {!result ? (
-              <p className="text-sm text-slate-400">Hoàn thành bài test để xem đề xuất khóa học.</p>
-            ) : (
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-                  <p className="text-sm text-slate-400">Điểm đúng</p>
-                  <p className="text-3xl font-extrabold text-white">
-                    {result.correct}/{result.total}
-                  </p>
-                  <p className="text-sm text-slate-400">Tỷ lệ: {result.percent}%</p>
-                </div>
-                <div className="rounded-2xl border border-amber-600 bg-amber-50/10 p-4 text-amber-100">
-                  <p className="text-sm">Trình độ đề xuất</p>
-                  <p className="text-2xl font-bold">{result.band.label}</p>
-                  <p className="text-sm opacity-80">{result.band.description}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-300">Khóa học nên thử</p>
-                  {loadingCourses ? (
-                    <p className="text-xs text-slate-500">Đang tải khóa học...</p>
-                  ) : error ? (
-                    <p className="text-xs text-red-400">{error}</p>
-                  ) : result.recommended.length === 0 ? (
-                    <p className="text-xs text-slate-500">Chưa có khóa phù hợp, hãy thử lại sau.</p>
-                  ) : (
-                    <ul className="mt-3 space-y-3 text-sm">
-                      {result.recommended.map((course) => (
-                        <li key={course.id} className="rounded-2xl border border-slate-800 p-3">
-                          <p className="font-semibold text-white">{course.title}</p>
-                          <p className="text-xs text-slate-400">Cấp độ: {course.level || "Đang cập nhật"}</p>
-                          <a
-                            href={`/courses/${course.slug || course.id}`}
-                            className="mt-1 inline-flex items-center text-xs font-semibold text-amber-400"
-                          >
-                            Xem khóa học →
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
             )}
-          </aside>
+          </div>
         </div>
       </section>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-10 backdrop-blur">
+          <div className="relative w-full max-w-5xl rounded-[36px] bg-[#fffaf4] p-6 shadow-2xl">
+            <button
+              className="absolute right-6 top-6 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-[#a05b26]"
+              onClick={() => setModalOpen(false)}
+            >
+              Đóng
+            </button>
+            {testLayout}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

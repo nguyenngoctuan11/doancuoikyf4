@@ -213,6 +213,11 @@ function ExamInner() {
     () => attempt?.questions?.find((q) => q.id === currentQuestionId) || null,
     [attempt, currentQuestionId],
   );
+  const currentIndex = useMemo(() => {
+    if (!attempt?.questions?.length || !currentQuestionId) return 0;
+    const idx = attempt.questions.findIndex((q) => q.id === currentQuestionId);
+    return idx >= 0 ? idx : 0;
+  }, [attempt, currentQuestionId]);
 
   const updateQuestionState = (questionId, updater) => {
     setAttempt((prev) => {
@@ -346,6 +351,39 @@ function ExamInner() {
       <div className="grid lg:grid-cols-[2fr_1fr] gap-6">
         <div className="space-y-4">
           <QuestionCard question={currentQuestion} onSelectOption={handleSelectOption} onToggleFlag={handleToggleFlag} />
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-stone-600">
+            <span>
+              Câu {currentIndex + 1}/{attempt?.questions?.length ?? 1}
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn btn-xs border-stone-300"
+                onClick={() => {
+                  if (!attempt?.questions?.length) return;
+                  const prevIdx = Math.max(0, currentIndex - 1);
+                  setCurrentQuestionId(attempt.questions[prevIdx].id);
+                }}
+                disabled={!attempt?.questions?.length || currentIndex <= 0}
+              >
+                Câu trước
+              </button>
+              <button
+                type="button"
+                className="btn btn-xs border-stone-300"
+                onClick={() => {
+                  if (!attempt?.questions?.length) return;
+                  const nextIdx = Math.min(attempt.questions.length - 1, currentIndex + 1);
+                  setCurrentQuestionId(attempt.questions[nextIdx].id);
+                }}
+                disabled={
+                  !attempt?.questions?.length || currentIndex >= (attempt?.questions?.length ?? 1) - 1
+                }
+              >
+                Câu tiếp
+              </button>
+            </div>
+          </div>
           {saving && <p className="text-xs text-stone-400">Đang lưu...</p>}
         </div>
         <div className="space-y-4">

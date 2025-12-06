@@ -120,6 +120,18 @@ function stripHtmlTags(value) {
   return String(value).replace(/<[^>]*>/g, "").trim();
 }
 
+function splitDescriptionParagraphs(value) {
+  if (!value) return [];
+  const normalized = String(value)
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "</p>\n");
+  const plain = stripHtmlTags(normalized);
+  return plain
+    .split(/\n+/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+}
+
 function normalizeModuleList(modules) {
   if (!Array.isArray(modules)) return [];
   return modules.map((module, mIdx) => {
@@ -167,6 +179,32 @@ function summarizeModules(modules) {
   return { totalLessons, totalSeconds, firstLessonWithVideo };
 }
 
+function formatFileSize(bytes) {
+  if (bytes == null) return null;
+  const num = Number(bytes);
+  if (!Number.isFinite(num) || num <= 0) return null;
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let idx = 0;
+  let current = num;
+  while (current >= 1024 && idx < units.length - 1) {
+    current /= 1024;
+    idx += 1;
+  }
+  const value = idx === 0 ? Math.round(current) : current.toFixed(1);
+  return `${value} ${units[idx]}`;
+}
+
+function resolveResourceUrl(resource) {
+  if (!resource) return null;
+  const candidate = resource.externalUrl || resource.fileUrl || resource.downloadUrl;
+  if (!candidate) return null;
+  if (/^https?:\/\//i.test(candidate) || candidate.startsWith("data:")) {
+    return candidate;
+  }
+  if (candidate.startsWith("/")) return `${API_BASE}${candidate}`;
+  return `${API_BASE}/${candidate}`;
+}
+
 export default function CourseDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -182,6 +220,9 @@ export default function CourseDetail() {
   const [syllabus, setSyllabus] = useState([]);
   const [syllabusLoading, setSyllabusLoading] = useState(false);
   const [syllabusError, setSyllabusError] = useState("");
+  const [publicResources, setPublicResources] = useState([]);
+  const [resourceLoading, setResourceLoading] = useState(false);
+  const [resourceError, setResourceError] = useState("");
   const { openChat, setEntryContext } = useSupportChat();
 
   useEffect(() => {
@@ -331,6 +372,43 @@ export default function CourseDetail() {
     };
   }, [view.id, normalizedBaseModules]);
 
+  useEffect(() => {
+    if (!view?.id) {
+      setPublicResources([]);
+      setResourceError("");
+      setResourceLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setResourceLoading(true);
+    setResourceError("");
+    const resourceUrl = `${API_BASE}/api/public/courses/resources?courseId=${encodeURIComponent(view.id)}`;
+    fetch(resourceUrl, { headers: { Accept: "application/json" } })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Không tải được tài liệu công khai");
+        }
+        return res.json();
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setPublicResources(Array.isArray(payload) ? payload : []);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setPublicResources([]);
+        setResourceError(err?.message || "Không tải được tài liệu công khai");
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setResourceLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [view?.id]);
+
   const modulesForDisplay = useMemo(
     () => (syllabus.length ? syllabus : normalizedBaseModules),
     [syllabus, normalizedBaseModules],
@@ -341,6 +419,31 @@ export default function CourseDetail() {
   const totalDurationLabel = secondsToLabel(modulesStats.totalSeconds) || view.stats.totalDurationLabel;
   const moduleCount = modulesForDisplay.length || view.stats.moduleCount;
   const previewLesson = modulesStats.firstLessonWithVideo || view.previewLesson;
+  const descriptionParagraphs = useMemo(() => splitDescriptionParagraphs(view.desc), [view.desc]);
+  const heroSubtitle =
+    descriptionParagraphs[0] ||
+    "Xây dựng nền tảng vững chắc , đồng hành cùng giảng viên xuyên suốt khóa học";
+  const groupedPublicResources = useMemo(() => {
+    if (!publicResources.length) return [];
+    const order = [];
+    const map = new Map();
+    publicResources.forEach((item) => {
+      const key = item.lessonId ? `lesson-${item.lessonId}` : item.lessonTitle ? `lesson-${item.lessonTitle}` : "general";
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          lessonId: item.lessonId,
+          lessonTitle: item.lessonTitle,
+          items: [],
+        });
+        order.push(map.get(key));
+      }
+      map.get(key).items.push(item);
+    });
+    return order;
+  }, [publicResources]);
+  const hasPublicResourceSection = resourceLoading || resourceError || groupedPublicResources.length > 0;
+  const descriptionBodyParagraphs = descriptionParagraphs.length ? descriptionParagraphs : [heroSubtitle];
 
   const isFreeCourse = view.isFree;
   const priceLabel = isFreeCourse ? "Miễn phí" : formatMoney(view.price) || "Đang cập nhật";
@@ -465,14 +568,8 @@ export default function CourseDetail() {
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="grid gap-10 lg:grid-cols-[1.75fr,1fr]">
           <div className="space-y-10">
-            <SectionHeading
-              eyebrow="Khóa học"
-              title={view.title}
-              subtitle={
-                view.desc ||
-                "Xây dựng nền tảng vững chắc, làm chủ dự án thực tế cùng mentor đồng hành xuyên suốt khóa học."
-              }
-            />
+            <SectionHeading eyebrow="Khóa học" title={view.title} subtitle={heroSubtitle} />
+
 
             <div className="rounded-3xl border border-stone-200 bg-stone-50 p-2 shadow-inner">
               {view.image ? (
@@ -496,6 +593,129 @@ export default function CourseDetail() {
               ))}
             </div>
 
+
+            {descriptionBodyParagraphs.length > 0 && (
+              <div className="rounded-3xl border border-amber-100/70 bg-gradient-to-br from-amber-50 via-white to-rose-50 p-8 shadow-lg shadow-amber-100/50">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.35em] text-amber-500">Mô tả chi tiết</p>
+                    <h3 className="mt-1 text-3xl font-bold text-stone-900">Trải nghiệm khóa học</h3>
+                  </div>
+                  <span className="rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-stone-600 shadow-inner">
+                    Cập nhật {moduleCount || "???"} chương
+                  </span>
+                </div>
+                <div className="mt-5 space-y-4 text-base leading-relaxed text-stone-700">
+                  {descriptionBodyParagraphs.map((paragraph, idx) => (
+                    <p key={idx} className="text-lg text-stone-700">
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {hasPublicResourceSection && (
+              <div className="rounded-3xl border border-primary-100/80 bg-gradient-to-br from-primary-50 via-white to-amber-50 p-6 shadow-lg shadow-primary-100/50">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.35em] text-primary-600">Tài liệu công khai</p>
+                    <h3 className="mt-1 text-2xl font-bold text-stone-900">Dành cho học viên</h3>
+                    <p className="mt-1 text-sm text-stone-600">
+                      Đánh dấu những tài liệu được phép truy cập chung, giúp học viên dễ dàng bổ sung kiến thức cho từng mô-đun trọng tâm.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-primary-600 shadow-inner">
+                    {publicResources.length} tệp
+                  </span>
+                </div>
+                {resourceLoading && (
+                  <div className="mt-4 rounded-2xl border border-dashed border-primary-200 bg-white/70 px-4 py-3 text-sm text-primary-700">
+                    Đang tải danh sách tài liệu...
+                  </div>
+                )}
+                {!resourceLoading && resourceError && (
+                  <p className="mt-4 text-sm text-red-600">{resourceError}</p>
+                )}
+                {!resourceLoading && !resourceError && groupedPublicResources.length === 0 && (
+                  <p className="mt-4 text-sm text-stone-500">Chưa có tài liệu công khai cho khóa học này.</p>
+                )}
+                {groupedPublicResources.length > 0 && (
+                  <div className="mt-6 space-y-6">
+                    {groupedPublicResources.map((group) => (
+                      <div key={group.key} className="rounded-2xl border border-white/60 bg-white/90 p-5 shadow-md shadow-primary-50/60">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary-500">Bài học</p>
+                            <h4 className="text-lg font-semibold text-stone-900">
+                              {group.lessonTitle || "Tài liệu chung"}
+                            </h4>
+                          </div>
+                          <span className="rounded-full bg-primary-50 px-4 py-1 text-xs font-semibold text-primary-700">
+                            {group.items.length} tài liệu
+                          </span>
+                        </div>
+                        <ul className="mt-4 space-y-3">
+                          {group.items.map((resource) => {
+                            const resourceUrl = resolveResourceUrl(resource);
+                            const sizeLabel = formatFileSize(resource.fileSize);
+                            const typeLabel = resource.sourceType === "link" ? "Liên kết" : "Tệp đính kèm";
+                            return (
+                              <li
+                                key={resource.id}
+                                className="flex flex-col gap-4 rounded-2xl border border-stone-100 bg-stone-50/70 px-4 py-4 md:flex-row md:items-center md:justify-between"
+                              >
+                                <div>
+                                  <p className="text-base font-semibold text-stone-900">{resource.title}</p>
+                                  {resource.description && (
+                                    <p className="mt-1 text-sm text-stone-500">{resource.description}</p>
+                                  )}
+                                  <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-stone-500">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 shadow-sm shadow-stone-100">
+                                      {typeLabel}
+                                    </span>
+                                    {resource.fileType && (
+                                      <span className="inline-flex items-center rounded-full bg-white px-3 py-1 shadow-sm shadow-stone-100">
+                                        {resource.fileType.toUpperCase()}
+                                      </span>
+                                    )}
+                                    {sizeLabel && (
+                                      <span className="inline-flex items-center rounded-full bg-white px-3 py-1 shadow-sm shadow-stone-100">
+                                        {sizeLabel}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-3">
+                                  {resourceUrl ? (
+                                    <a
+                                      href={resourceUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 via-rose-500 to-amber-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-rose-100/60 transition hover:translate-y-0.5"
+                                    >
+                                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M12 5v14M5 12h14" />
+                                      </svg>
+                                      Mô tả tài liệu
+                                    </a>
+                                  ) : (
+                                    <span className="text-xs text-stone-400">Liên hệ hỗ trợ trước để nhận file</span>
+                                  )}
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+
+
             {showPreview && (
               <div ref={previewRef} className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
                 <p className="text-sm font-semibold text-primary-600">Học thử</p>
@@ -503,7 +723,8 @@ export default function CourseDetail() {
                   {previewLesson?.title || "Video giới thiệu khóa học"}
                 </h3>
                 <p className="mt-2 text-sm text-stone-600">
-                  {view.desc || "Tận mắt xem cách giảng viên đồng hành, bài giảng được trình bày ra sao trước khi quyết định."}
+                  {descriptionBodyParagraphs[0] ||
+                    "Tận mắt xem cách giảng viên đồng hành, bài giảng được trình bày ra sao trước khi quyết định."}
                 </p>
                 <div className="mt-4 aspect-video overflow-hidden rounded-2xl border border-stone-200 bg-stone-50">
                   {previewLesson?.video_url ? (
@@ -695,8 +916,8 @@ export default function CourseDetail() {
             <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
               <h4 className="text-lg font-semibold text-stone-900">Lời giới thiệu</h4>
               <p className="mt-2 text-sm text-stone-600">
-                {view.desc ||
-                  "Khoá học cung cấp kiến thức trọng tâm đi kèm dự án thực tế để bạn có thể tự tin ứng tuyển vị trí mơ ước."}
+                {descriptionBodyParagraphs[0] ||
+                  "KhoÃ¡ há»c cung cáº¥p kiáº¿n thá»©c trá»ng tÃ¢m Äi kÃ¨m dá»± Ã¡n thá»±c táº¿ Äá» báº¡n cÃ³ thá» tá»± tin á»©ng tuyá»n vá» trÃ­ mÆ¡ Æ°á»c."}
               </p>
               {!isFreeCourse && (
                 <p className="mt-4 text-sm text-primary-700">

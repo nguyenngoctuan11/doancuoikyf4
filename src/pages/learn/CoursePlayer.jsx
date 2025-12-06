@@ -305,11 +305,10 @@ export default function CoursePlayer() {
   const handleVideoProgress = async (event) => {
     if (!current?.video_url) return;
     if (completedSet.has(current.id)) return;
+    if (pendingCompleteRef.current.has(current.id)) return;
     const video = event.currentTarget;
     videoElementRef.current = video;
     const duration = video.duration || 0;
-    const currentTime = video.currentTime || 0;
-    pendingCompleteRef.current.add(current.id);
     if (!duration) return;
     if (video.currentTime / duration >= 0.97) {
       await markLessonComplete(current, { silent: true, onSuccess: () => setVideoUnlocked(true) });

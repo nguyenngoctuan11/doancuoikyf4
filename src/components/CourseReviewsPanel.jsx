@@ -149,30 +149,32 @@ export default function CourseReviewsPanel({ courseId, canReview }) {
   }
 
   return (
-    <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+    <div className="rounded-[32px] border border-white/70 bg-gradient-to-br from-[#fffaf4] via-[#f4e8dc] to-white p-8 shadow-2xl">
       <div className="flex flex-col gap-8 lg:flex-row">
-        <div className="lg:w-1/2">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary-600">Đánh giá từ học viên</p>
-          <h3 className="mt-2 text-2xl font-bold text-stone-900">Trải nghiệm thực tế</h3>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="lg:w-1/2 space-y-5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#c97a44]">Đánh giá từ học viên</p>
+            <h3 className="mt-2 text-3xl font-extrabold text-[#2f1505]">Trải nghiệm thực tế</h3>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
             <SummaryCard label="Điểm nội dung" value={summary?.courseAverage ?? "--"} />
             <SummaryCard label="Điểm giảng viên" value={summary?.instructorAverage ?? "--"} />
             <SummaryCard label="Hỗ trợ & kỹ thuật" value={summary?.supportAverage ?? "--"} />
             <SummaryCard label="Khuyến nghị" value={summary ? recommendLabel : "--"} small />
           </div>
-          <div className="mt-6">
+          <div className="rounded-3xl border border-white/60 bg-white/80 p-5 shadow-lg backdrop-blur">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-stone-400">Phân bố đánh giá</p>
-            <div className="mt-3 space-y-2">
+            <div className="mt-4 space-y-3">
               {histogram.length > 0 ? (
                 histogram
                   .map((value, idx) => ({ value, score: idx + 1 }))
                   .reverse()
                   .map((bucket) => (
-                    <div key={bucket.score} className="flex items-center gap-3 text-sm text-stone-600">
-                      <span className="w-12 font-semibold">{bucket.score}★</span>
+                    <div key={bucket.score} className="flex items-center gap-3 text-sm text-stone-700">
+                      <span className="w-10 font-semibold text-[#a1643b]">{bucket.score}★</span>
                       <div className="h-2 flex-1 rounded-full bg-stone-100">
                         <div
-                          className="h-2 rounded-full bg-primary-500 transition-all"
+                          className="h-2 rounded-full bg-gradient-to-r from-[#c88144] to-[#f4a259] transition-all"
                           style={{
                             width:
                               summary?.total && summary.total > 0
@@ -181,7 +183,7 @@ export default function CourseReviewsPanel({ courseId, canReview }) {
                           }}
                         />
                       </div>
-                      <span className="w-10 text-right">{bucket.value}</span>
+                      <span className="w-6 text-right font-semibold text-stone-500">{bucket.value}</span>
                     </div>
                   ))
               ) : (
@@ -192,8 +194,8 @@ export default function CourseReviewsPanel({ courseId, canReview }) {
         </div>
 
         <div className="lg:w-1/2">
-          <div className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4">
-            <h4 className="text-base font-semibold text-stone-900">Chia sẻ cảm nhận của bạn</h4>
+          <div className="rounded-[28px] border border-white/60 bg-white/90 p-6 shadow-xl backdrop-blur">
+            <h4 className="text-lg font-semibold text-[#2f1606]">Chia sẻ cảm nhận của bạn</h4>
             {!isAuthenticated && (
               <p className="mt-2 text-sm text-stone-500">Vui lòng đăng nhập để gửi đánh giá khóa học.</p>
             )}
@@ -201,9 +203,11 @@ export default function CourseReviewsPanel({ courseId, canReview }) {
               <p className="mt-2 text-sm text-stone-500">Bạn cần ghi danh khóa học trước khi gửi đánh giá.</p>
             )}
             {myReview?.status && (
-              <p className="mt-2 text-xs text-primary-600">
+              <p className="mt-2 text-xs text-[#a25b2c]">
                 Đánh giá hiện ở trạng thái:{" "}
-                <strong>{myReview.status === "approved" ? "Đã duyệt" : myReview.status === "rejected" ? "Bị từ chối" : "Đang chờ duyệt"}</strong>
+                <strong>
+                  {myReview.status === "approved" ? "Đã duyệt" : myReview.status === "rejected" ? "Bị từ chối" : "Đang chờ duyệt"}
+                </strong>
               </p>
             )}
             <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
@@ -212,7 +216,7 @@ export default function CourseReviewsPanel({ courseId, canReview }) {
                   {item.label}
                   <select
                     name={item.key}
-                    className="mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2"
+                    className="mt-2 w-full rounded-2xl border border-stone-200 bg-white/80 px-4 py-2.5 text-sm shadow-inner focus:border-[#c68143] focus:outline-none focus:ring-2 focus:ring-amber-100"
                     value={form[item.key]}
                     onChange={handleChange}
                     disabled={!isAuthenticated}
@@ -225,11 +229,11 @@ export default function CourseReviewsPanel({ courseId, canReview }) {
                   </select>
                 </label>
               ))}
-              <label className="flex items-center gap-2 text-sm text-stone-700">
+              <label className="flex items-center gap-2 rounded-2xl bg-white/70 px-4 py-2 text-sm text-stone-700 shadow-inner">
                 <input
                   type="checkbox"
                   name="wouldRecommend"
-                  className="h-4 w-4 rounded border-stone-300 text-primary-600"
+                  className="h-4 w-4 rounded border-stone-300 text-[#c97a44] focus:ring-[#c97a44]"
                   checked={form.wouldRecommend}
                   onChange={handleChange}
                   disabled={!isAuthenticated}
@@ -238,7 +242,7 @@ export default function CourseReviewsPanel({ courseId, canReview }) {
               </label>
               <textarea
                 name="highlight"
-                className="w-full rounded-xl border border-stone-200 px-3 py-2 text-sm"
+                className="w-full rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm shadow-inner focus:border-[#c68143] focus:outline-none focus:ring-2 focus:ring-amber-100"
                 placeholder="Điểm bạn thích nhất..."
                 rows={2}
                 value={form.highlight}
@@ -247,7 +251,7 @@ export default function CourseReviewsPanel({ courseId, canReview }) {
               />
               <textarea
                 name="improvement"
-                className="w-full rounded-xl border border-stone-200 px-3 py-2 text-sm"
+                className="w-full rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm shadow-inner focus:border-[#c68143] focus:outline-none focus:ring-2 focus:ring-amber-100"
                 placeholder="Điều cần cải thiện..."
                 rows={2}
                 value={form.improvement}
@@ -256,7 +260,7 @@ export default function CourseReviewsPanel({ courseId, canReview }) {
               />
               <textarea
                 name="comment"
-                className="w-full rounded-xl border border-stone-200 px-3 py-2 text-sm"
+                className="w-full rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 text-sm shadow-inner focus:border-[#c68143] focus:outline-none focus:ring-2 focus:ring-amber-100"
                 placeholder="Nhận xét chi tiết..."
                 rows={3}
                 value={form.comment}
@@ -264,7 +268,7 @@ export default function CourseReviewsPanel({ courseId, canReview }) {
                 disabled={!isAuthenticated}
               />
               {error && <p className="text-sm text-red-600">{error}</p>}
-              <button type="submit" className="btn btn-primary w-full" disabled={!canSubmit}>
+              <button type="submit" className="btn btn-primary w-full rounded-2xl bg-gradient-to-r from-[#c67a42] to-[#a45620] text-white" disabled={!canSubmit}>
                 {submitting ? "Đang gửi..." : myReview ? "Cập nhật đánh giá" : "Gửi đánh giá"}
               </button>
             </form>
@@ -272,15 +276,20 @@ export default function CourseReviewsPanel({ courseId, canReview }) {
         </div>
       </div>
 
-      <div className="mt-8">
-        <h4 className="text-lg font-semibold text-stone-900">Nhận xét nổi bật</h4>
+      <div className="mt-10">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-stone-400">Nhận xét nổi bật</p>
+            <h4 className="mt-2 text-xl font-semibold text-[#2f1505]">Câu chuyện từ học viên</h4>
+          </div>
+        </div>
         {loading && <p className="mt-3 text-sm text-stone-500">Đang tải đánh giá...</p>}
         {!loading && reviews.length === 0 && (
           <p className="mt-3 text-sm text-stone-500">Chưa có nhận xét nào. Hãy là người đầu tiên chia sẻ cảm nhận!</p>
         )}
         <div className="mt-4 space-y-4">
           {reviews.map((review) => (
-            <article key={review.id} className="rounded-2xl border border-stone-100 bg-stone-50/60 p-4">
+            <article key={review.id} className="rounded-[26px] border border-white/70 bg-white/90 p-5 shadow-lg backdrop-blur">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="font-semibold text-stone-900">{review.studentName || "Học viên"}</p>
@@ -288,20 +297,22 @@ export default function CourseReviewsPanel({ courseId, canReview }) {
                     {new Date(review.createdAt || new Date()).toLocaleDateString("vi-VN")}
                   </p>
                 </div>
-                <div className="text-sm font-semibold text-primary-600">{review.courseScore} ★</div>
+                <div className="rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-[#c97a44] shadow-inner">
+                  {review.courseScore} ★
+                </div>
               </div>
               {review.comment && <p className="mt-3 text-sm text-stone-700">{review.comment}</p>}
-              <dl className="mt-3 grid gap-3 text-xs text-stone-500 sm:grid-cols-3">
+              <dl className="mt-4 grid gap-4 text-xs text-stone-500 sm:grid-cols-3">
                 <div>
-                  <dt className="font-semibold uppercase tracking-wide">Điểm mạnh</dt>
+                  <dt className="font-semibold uppercase tracking-wide text-stone-700">Điểm mạnh</dt>
                   <dd>{review.highlight || "—"}</dd>
                 </div>
                 <div>
-                  <dt className="font-semibold uppercase tracking-wide">Cải thiện</dt>
+                  <dt className="font-semibold uppercase tracking-wide text-stone-700">Cải thiện</dt>
                   <dd>{review.improvement || "—"}</dd>
                 </div>
                 <div>
-                  <dt className="font-semibold uppercase tracking-wide">Giảng viên</dt>
+                  <dt className="font-semibold uppercase tracking-wide text-stone-700">Giảng viên</dt>
                   <dd>{review.instructorName || "—"}</dd>
                 </div>
               </dl>
@@ -315,9 +326,9 @@ export default function CourseReviewsPanel({ courseId, canReview }) {
 
 function SummaryCard({ label, value, small }) {
   return (
-    <div className="rounded-2xl border border-stone-100 bg-stone-50/60 p-4">
+    <div className="rounded-3xl border border-white/65 bg-white/80 p-4 shadow-lg backdrop-blur">
       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-stone-400">{label}</p>
-      <p className={`mt-2 font-bold text-stone-900 ${small ? "text-base" : "text-3xl"}`}>{value ?? "--"}</p>
+      <p className={`mt-3 font-extrabold text-[#2d1608] ${small ? "text-base" : "text-3xl"}`}>{value ?? "--"}</p>
     </div>
   );
 }
